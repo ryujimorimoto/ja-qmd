@@ -1,90 +1,78 @@
-# QMD - Quick Markdown Search
+# QMD - クイックマークダウン検索
+覚えておくべきあらゆる情報を対象にした、オンデバイス検索エンジン。
+Markdownノート、会議の書き起こし、ドキュメント、ナレッジベースをインデックス化できます。
+キーワード検索にも自然言語検索にも対応。エージェント指向のワークフローに最適です。
 
-An on-device search engine for everything you need to remember. Index your markdown notes, meeting transcripts, documentation, and knowledge bases. Search with keywords or natural language. Ideal for your agentic flows.
+QMDは、BM25による全文検索、ベクトルによる意味検索、LLMによる再ランキングを組み合わせ、すべてを node-llama-cpp + GGUFモデルでローカル実行します。
 
-QMD combines BM25 full-text search, vector semantic search, and LLM re-ranking—all running locally via node-llama-cpp with GGUF models.
+## クイックスタート
 
-## Quick Start
-
-```sh
-# Install globally
+```bash
+# グローバルインストール
 bun install -g https://github.com/tobi/qmd
 
-# Create collections for your notes, docs, and meeting transcripts
+# ノート、ドキュメント、会議記録用のコレクションを作成
 qmd collection add ~/notes --name notes
 qmd collection add ~/Documents/meetings --name meetings
 qmd collection add ~/work/docs --name docs
 
-# Add context to help with search results
-qmd context add qmd://notes "Personal notes and ideas"
-qmd context add qmd://meetings "Meeting transcripts and notes"
-qmd context add qmd://docs "Work documentation"
+# 検索結果を改善するためのコンテキストを追加
+qmd context add qmd://notes "個人的なノートとアイデア"
+qmd context add qmd://meetings "会議の記録とメモ"
+qmd context add qmd://docs "業務ドキュメント"
 
-# Generate embeddings for semantic search
+# 意味検索用の埋め込みを生成
 qmd embed
 
-# Search across everything
-qmd search "project timeline"           # Fast keyword search
-qmd vsearch "how to deploy"             # Semantic search
-qmd query "quarterly planning process"  # Hybrid + reranking (best quality)
+# すべてを横断して検索
+qmd search "プロジェクトのタイムライン"      # 高速キーワード検索
+qmd vsearch "デプロイ方法"                    # 意味検索
+qmd query "四半期計画プロセス"                # ハイブリッド+再ランキング(最高品質)
 
-# Get a specific document
+# 特定のドキュメントを取得
 qmd get "meetings/2024-01-15.md"
 
-# Get a document by docid (shown in search results)
+# docidでドキュメントを取得(検索結果に表示)
 qmd get "#abc123"
 
-# Get multiple documents by glob pattern
+# グロブパターンで複数のドキュメントを取得
 qmd multi-get "journals/2025-05*.md"
 
-# Search within a specific collection
+# 特定のコレクション内を検索
 qmd search "API" -c notes
 
-# Export all matches for an agent
+# エージェント用にすべてのマッチをエクスポート
 qmd search "API" --all --files --min-score 0.3
 ```
 
-### Using with AI Agents
+## AIエージェントでの使用
 
-QMD's `--json` and `--files` output formats are designed for agentic workflows:
+QMDの`--json`と`--files`出力フォーマットは、エージェントワークフロー向けに設計されています:
 
-```sh
-# Get structured results for an LLM
-qmd search "authentication" --json -n 10
+```bash
+# LLM用の構造化結果を取得
+qmd search "認証" --json -n 10
 
-# List all relevant files above a threshold
-qmd query "error handling" --all --files --min-score 0.4
+# 閾値以上のすべての関連ファイルをリスト化
+qmd query "エラーハンドリング" --all --files --min-score 0.4
 
-# Retrieve full document content
+# 完全なドキュメント内容を取得
 qmd get "docs/api-reference.md" --full
 ```
 
-### MCP Server
+## MCPサーバー
+CLIでそのまま使うこともできますが、MCP（Model Context Protocol）サーバーも提供しており、より密な統合が可能です。
 
-Although the tool works perfectly fine when you just tell your agent to use it on the command line, it also exposes an MCP (Model Context Protocol) server for tighter integration.
+**公開されているツール:**
 
-**Tools exposed:**
-- `qmd_search` - Fast BM25 keyword search (supports collection filter)
-- `qmd_vsearch` - Semantic vector search (supports collection filter)
-- `qmd_query` - Hybrid search with reranking (supports collection filter)
-- `qmd_get` - Retrieve document by path or docid (with fuzzy matching suggestions)
-- `qmd_multi_get` - Retrieve multiple documents by glob pattern, list, or docids
-- `qmd_status` - Index health and collection info
+- `qmd_search` - 高速BM25キーワード検索(コレクションフィルター対応)
+- `qmd_vsearch` - 意味ベクトル検索(コレクションフィルター対応)
+- `qmd_query` - 再ランキング付きハイブリッド検索(コレクションフィルター対応)
+- `qmd_get` - パスまたはdocidでドキュメントを取得(あいまい一致の提案付き)
+- `qmd_multi_get` - グロブパターン、リスト、またはdocidで複数ドキュメントを取得
+- `qmd_status` - インデックスの健全性とコレクション情報
 
-**Claude Desktop configuration** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "qmd": {
-      "command": "qmd",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-**Claude Code configuration** (`~/.claude/settings.json`):
+**Claude Desktop設定** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
@@ -97,38 +85,51 @@ Although the tool works perfectly fine when you just tell your agent to use it o
 }
 ```
 
-## Architecture
+**Claude Code設定** (`~/.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "qmd": {
+      "command": "qmd",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+## アーキテクチャ
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         QMD Hybrid Search Pipeline                          │
+│                      QMD ハイブリッド検索パイプライン                            │
 └─────────────────────────────────────────────────────────────────────────────┘
 
                               ┌─────────────────┐
-                              │   User Query    │
+                              │  ユーザークエリ    │
                               └────────┬────────┘
                                        │
                         ┌──────────────┴──────────────┐
                         ▼                             ▼
                ┌────────────────┐            ┌────────────────┐
-               │ Query Expansion│            │  Original Query│
-               │   (Qwen3-0.6B) │            │   (×2 weight)  │
+               │ クエリ拡張       │            │  元のクエリ      │
+               │ (Qwen3-0.6B)   │            │   (×2 重み)     │
                └───────┬────────┘            └───────┬────────┘
                        │                             │
-                       │ 2 alternative queries       │
+                       │ 2つの代替クエリ             │
                        └──────────────┬──────────────┘
                                       │
               ┌───────────────────────┼───────────────────────┐
               ▼                       ▼                       ▼
      ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-     │ Original Query  │     │ Expanded Query 1│     │ Expanded Query 2│
+     │  元のクエリ       │     │ 拡張クエリ1       │     │ 拡張クエリ2      │
      └────────┬────────┘     └────────┬────────┘     └────────┬────────┘
               │                       │                       │
       ┌───────┴───────┐       ┌───────┴───────┐       ┌───────┴───────┐
       ▼               ▼       ▼               ▼       ▼               ▼
   ┌───────┐       ┌───────┐ ┌───────┐     ┌───────┐ ┌───────┐     ┌───────┐
-  │ BM25  │       │Vector │ │ BM25  │     │Vector │ │ BM25  │     │Vector │
-  │(FTS5) │       │Search │ │(FTS5) │     │Search │ │(FTS5) │     │Search │
+  │ BM25  │       │ベクトル │ │ BM25  │     │ベクトル│ │ BM25  │     │ベクトル│
+  │(FTS5) │       │ 検索   │ │(FTS5) │     │ 検索   │ │(FTS5) │     │ 検索  │
   └───┬───┘       └───┬───┘ └───┬───┘     └───┬───┘ └───┬───┘     └───┬───┘
       │               │         │             │         │             │
       └───────┬───────┘         └──────┬──────┘         └──────┬──────┘
@@ -137,380 +138,379 @@ Although the tool works perfectly fine when you just tell your agent to use it o
                                        │
                                        ▼
                           ┌───────────────────────┐
-                          │   RRF Fusion + Bonus  │
-                          │  Original query: ×2   │
-                          │  Top-rank bonus: +0.05│
-                          │     Top 30 Kept       │
+                          │ RRF統合 + ボーナス      │
+                          │  元のクエリ: ×2         │
+                          │ トップランクボーナス:     │
+                          │       +0.05           │
+                          │    上位30件を保持       │
                           └───────────┬───────────┘
                                       │
                                       ▼
                           ┌───────────────────────┐
-                          │    LLM Re-ranking     │
-                          │  (qwen3-reranker)     │
+                          │    LLM 再ランキング     │
+                          │ (qwen3-reranker)      │
                           │  Yes/No + logprobs    │
                           └───────────┬───────────┘
                                       │
                                       ▼
                           ┌───────────────────────┐
-                          │  Position-Aware Blend │
-                          │  Top 1-3:  75% RRF    │
-                          │  Top 4-10: 60% RRF    │
-                          │  Top 11+:  40% RRF    │
+                          │ 位置考慮ブレンド         │
+                          │ 上位1-3:   75% RRF     │
+                          │ 上位4-10:  60% RRF     │
+                          │ 上位11以上: 40% RRF     │
                           └───────────────────────┘
 ```
 
-## Score Normalization & Fusion
+## スコアの正規化と統合
 
-### Search Backends
+### 検索バックエンド
 
-| Backend | Raw Score | Conversion | Range |
-|---------|-----------|------------|-------|
-| **FTS (BM25)** | SQLite FTS5 BM25 | `Math.abs(score)` | 0 to ~25+ |
-| **Vector** | Cosine distance | `1 / (1 + distance)` | 0.0 to 1.0 |
-| **Reranker** | LLM 0-10 rating | `score / 10` | 0.0 to 1.0 |
+| バックエンド | 生スコア | 変換 | 範囲 |
+|------------|---------|------|------|
+| FTS (BM25) | SQLite FTS5 BM25 | Math.abs(score) | 0〜約25+ |
+| ベクトル | コサイン距離 | 1 / (1 + distance) | 0.0〜1.0 |
+| 再ランカー | LLMの0-10評価 | score / 10 | 0.0〜1.0 |
 
-### Fusion Strategy
+### 統合戦略
 
-The `query` command uses **Reciprocal Rank Fusion (RRF)** with position-aware blending:
+`query`コマンドは、位置考慮ブレンディングを伴うReciprocal Rank Fusion (RRF)を使用します:
 
-1. **Query Expansion**: Original query (×2 for weighting) + 1 LLM variation
-2. **Parallel Retrieval**: Each query searches both FTS and vector indexes
-3. **RRF Fusion**: Combine all result lists using `score = Σ(1/(k+rank+1))` where k=60
-4. **Top-Rank Bonus**: Documents ranking #1 in any list get +0.05, #2-3 get +0.02
-5. **Top-K Selection**: Take top 30 candidates for reranking
-6. **Re-ranking**: LLM scores each document (yes/no with logprobs confidence)
-7. **Position-Aware Blending**:
-   - RRF rank 1-3: 75% retrieval, 25% reranker (preserves exact matches)
-   - RRF rank 4-10: 60% retrieval, 40% reranker
-   - RRF rank 11+: 40% retrieval, 60% reranker (trust reranker more)
+1. **クエリ拡張**: 元のクエリ(重み付けで×2) + LLMによる1バリエーション
+2. **並列検索**: 各クエリがFTSとベクトルインデックスの両方を検索
+3. **RRF統合**: すべての結果リストを`score = Σ(1/(k+rank+1))`(k=60)で統合
+4. **トップランクボーナス**: どのリストでも#1のドキュメントに+0.05、#2-3に+0.02
+5. **上位K選択**: 再ランキング用に上位30候補を選択
+6. **再ランキング**: LLMが各ドキュメントをスコアリング(yes/noとlogprobs信頼度)
+7. **位置考慮ブレンディング**:
+   - RRFランク1-3: 75%検索、25%再ランカー(完全一致を保持)
+   - RRFランク4-10: 60%検索、40%再ランカー
+   - RRFランク11以上: 40%検索、60%再ランカー(再ランカーをより信頼)
 
-**Why this approach**: Pure RRF can dilute exact matches when expanded queries don't match. The top-rank bonus preserves documents that score #1 for the original query. Position-aware blending prevents the reranker from destroying high-confidence retrieval results.
+**このアプローチの理由**: 純粋なRRFは、拡張クエリが一致しない場合に完全一致を薄める可能性があります。トップランクボーナスは、元のクエリで#1スコアのドキュメントを保持します。位置考慮ブレンディングは、再ランカーが高信頼度の検索結果を破壊するのを防ぎます。
 
-### Score Interpretation
+### スコアの解釈
 
-| Score | Meaning |
-|-------|---------|
-| 0.8 - 1.0 | Highly relevant |
-| 0.5 - 0.8 | Moderately relevant |
-| 0.2 - 0.5 | Somewhat relevant |
-| 0.0 - 0.2 | Low relevance |
+| スコア | 意味 |
+|--------|------|
+| 0.8 - 1.0 | 高関連性 |
+| 0.5 - 0.8 | 中程度の関連性 |
+| 0.2 - 0.5 | やや関連性あり |
+| 0.0 - 0.2 | 低関連性 |
 
-## Requirements
+## 要件
 
-### System Requirements
+### システム要件
 
-- **Bun** >= 1.0.0
-- **macOS**: Homebrew SQLite (for extension support)
-  ```sh
+- Bun >= 1.0.0
+- macOS: Homebrew SQLite(拡張サポート用)
+  ```bash
   brew install sqlite
   ```
 
-### GGUF Models (via node-llama-cpp)
+### GGUFモデル (node-llama-cpp経由)
 
-QMD uses three local GGUF models (auto-downloaded on first use):
+QMDは3つのローカルGGUFモデルを使用します(初回使用時に自動ダウンロード):
 
-| Model | Purpose | Size |
-|-------|---------|------|
-| `embeddinggemma-300M-Q8_0` | Vector embeddings | ~300MB |
-| `qwen3-reranker-0.6b-q8_0` | Re-ranking | ~640MB |
-| `Qwen3-0.6B-Q8_0` | Query expansion | ~640MB |
+| モデル | 用途 | サイズ |
+|--------|------|--------|
+| embeddinggemma-300M-Q8_0 | ベクトル埋め込み | 約300MB |
+| qwen3-reranker-0.6b-q8_0 | 再ランキング | 約640MB |
+| Qwen3-0.6B-Q8_0 | クエリ拡張 | 約640MB |
 
-Models are downloaded from HuggingFace and cached in `~/.cache/qmd/models/`.
+モデルはHuggingFaceからダウンロードされ、`~/.cache/qmd/models/`にキャッシュされます。
 
-## Installation
+## インストール
 
-```sh
+```bash
 bun install
 ```
 
-## Usage
+## 使用方法
 
-### Collection Management
+### コレクション管理
 
-```sh
-# Create a collection from current directory
+```bash
+# 現在のディレクトリからコレクションを作成
 qmd collection add . --name myproject
 
-# Create a collection with explicit path and custom glob mask
+# 明示的なパスとカスタムグロブマスクでコレクションを作成
 qmd collection add ~/Documents/notes --name notes --mask "**/*.md"
 
-# List all collections
+# すべてのコレクションをリスト化
 qmd collection list
 
-# Remove a collection
+# コレクションを削除
 qmd collection remove myproject
 
-# Rename a collection
+# コレクションをリネーム
 qmd collection rename myproject my-project
 
-# List files in a collection
+# コレクション内のファイルをリスト化
 qmd ls notes
 qmd ls notes/subfolder
 ```
 
-### Generate Vector Embeddings
+### ベクトル埋め込みの生成
 
-```sh
-# Embed all indexed documents (800 tokens/chunk, 15% overlap)
+```bash
+# すべてのインデックス済みドキュメントを埋め込み(800トークン/チャンク、15%オーバーラップ)
 qmd embed
 
-# Force re-embed everything
+# すべてを強制的に再埋め込み
 qmd embed -f
 ```
 
-### Context Management
+### コンテキスト管理
 
-Context adds descriptive metadata to collections and paths, helping search understand your content.
+コンテキストは、コレクションやパスに説明的なメタデータを追加し、検索がコンテンツを理解するのを助けます。
 
-```sh
-# Add context to a collection (using qmd:// virtual paths)
-qmd context add qmd://notes "Personal notes and ideas"
-qmd context add qmd://docs/api "API documentation"
+```bash
+# コレクションにコンテキストを追加(qmd://仮想パスを使用)
+qmd context add qmd://notes "個人的なノートとアイデア"
+qmd context add qmd://docs/api "APIドキュメント"
 
-# Add context from within a collection directory
-cd ~/notes && qmd context add "Personal notes and ideas"
-cd ~/notes/work && qmd context add "Work-related notes"
+# コレクションディレクトリ内からコンテキストを追加
+cd ~/notes && qmd context add "個人的なノートとアイデア"
+cd ~/notes/work && qmd context add "仕事関連のノート"
 
-# Add global context (applies to all collections)
-qmd context add / "Knowledge base for my projects"
+# グローバルコンテキストを追加(すべてのコレクションに適用)
+qmd context add / "プロジェクト用のナレッジベース"
 
-# List all contexts
+# すべてのコンテキストをリスト化
 qmd context list
 
-# Remove context
+# コンテキストを削除
 qmd context rm qmd://notes/old
 ```
 
-### Search Commands
+### 検索コマンド
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                        Search Modes                              │
+│                        検索モード                                  │
 ├──────────┬───────────────────────────────────────────────────────┤
-│ search   │ BM25 full-text search only                           │
-│ vsearch  │ Vector semantic search only                          │
-│ query    │ Hybrid: FTS + Vector + Query Expansion + Re-ranking  │
+│ search   │ BM25全文検索のみ                                        │
+│ vsearch  │ ベクトル意味検索のみ                                     │
+│ query    │ ハイブリッド: FTS + ベクトル + クエリ拡張 + 再ランキング     │
 └──────────┴───────────────────────────────────────────────────────┘
 ```
 
-```sh
-# Full-text search (fast, keyword-based)
-qmd search "authentication flow"
+```bash
+# 全文検索(高速、キーワードベース)
+qmd search "認証フロー"
 
-# Vector search (semantic similarity)
-qmd vsearch "how to login"
+# ベクトル検索(意味的類似性)
+qmd vsearch "ログイン方法"
 
-# Hybrid search with re-ranking (best quality)
-qmd query "user authentication"
+# 再ランキング付きハイブリッド検索(最高品質)
+qmd query "ユーザー認証"
 ```
 
-### Options
+### オプション
 
-```sh
-# Search options
--n <num>           # Number of results (default: 5, or 20 for --files/--json)
--c, --collection   # Restrict search to a specific collection
---all              # Return all matches (use with --min-score to filter)
---min-score <num>  # Minimum score threshold (default: 0)
---full             # Show full document content
---line-numbers     # Add line numbers to output
---index <name>     # Use named index
+```bash
+# 検索オプション
+-n <num>           # 結果数(デフォルト: 5、--files/--jsonの場合は20)
+-c, --collection   # 特定のコレクションに検索を制限
+--all              # すべてのマッチを返す(--min-scoreと併用してフィルタ)
+--min-score <num>  # 最小スコア閾値(デフォルト: 0)
+--full             # 完全なドキュメント内容を表示
+--line-numbers     # 出力に行番号を追加
+--index <name>     # 名前付きインデックスを使用
 
-# Output formats (for search and multi-get)
---files            # Output: docid,score,filepath,context
---json             # JSON output with snippets
---csv              # CSV output
---md               # Markdown output
---xml              # XML output
+# 出力フォーマット(searchとmulti-get用)
+--files            # 出力: docid,score,filepath,context
+--json             # スニペット付きJSON出力
+--csv              # CSV出力
+--md               # Markdown出力
+--xml              # XML出力
 
-# Get options
-qmd get <file>[:line]  # Get document, optionally starting at line
--l <num>               # Maximum lines to return
---from <num>           # Start from line number
+# getオプション
+qmd get <file>[:line]  # ドキュメントを取得、オプションで行から開始
+-l <num>               # 返す最大行数
+--from <num>           # 行番号から開始
 
-# Multi-get options
--l <num>           # Maximum lines per file
---max-bytes <num>  # Skip files larger than N bytes (default: 10KB)
+# multi-getオプション
+-l <num>           # ファイルあたりの最大行数
+--max-bytes <num>  # Nバイトより大きいファイルをスキップ(デフォルト: 10KB)
 ```
 
-### Output Format
+### 出力フォーマット
 
-Default output is colorized CLI format (respects `NO_COLOR` env):
+デフォルト出力は色付きCLIフォーマットです(NO_COLOR環境変数を尊重):
 
 ```
 docs/guide.md:42 #a1b2c3
-Title: Software Craftsmanship
-Context: Work documentation
+Title: ソフトウェアクラフトマンシップ
+Context: 業務ドキュメント
 Score: 93%
 
-This section covers the **craftsmanship** of building
-quality software with attention to detail.
-See also: engineering principles
+このセクションでは、細部への注意を払って
+高品質なソフトウェアを構築する**クラフトマンシップ**について説明します。
+関連項目: エンジニアリング原則
 
 
 notes/meeting.md:15 #d4e5f6
-Title: Q4 Planning
-Context: Personal notes and ideas
+Title: Q4計画
+Context: 個人的なノートとアイデア
 Score: 67%
 
-Discussion about code quality and craftsmanship
-in the development process.
+開発プロセスにおけるコード品質とクラフトマンシップ
+についての議論。
 ```
 
-- **Path**: Collection-relative path (e.g., `docs/guide.md`)
-- **Docid**: Short hash identifier (e.g., `#a1b2c3`) - use with `qmd get #a1b2c3`
-- **Title**: Extracted from document (first heading or filename)
-- **Context**: Path context if configured via `qmd context add`
-- **Score**: Color-coded (green >70%, yellow >40%, dim otherwise)
-- **Snippet**: Context around match with query terms highlighted
+- **Path**: コレクション相対パス(例: docs/guide.md)
+- **Docid**: 短いハッシュ識別子(例: #a1b2c3) - `qmd get #a1b2c3`で使用
+- **Title**: ドキュメントから抽出(最初の見出しまたはファイル名)
+- **Context**: `qmd context add`で設定された場合のパスコンテキスト
+- **Score**: 色分け(緑 >70%、黄 >40%、その他は薄く)
+- **Snippet**: マッチ周辺のコンテキスト、クエリ用語はハイライト
 
-### Examples
+### 例
 
-```sh
-# Get 10 results with minimum score 0.3
-qmd query -n 10 --min-score 0.3 "API design patterns"
+```bash
+# 最小スコア0.3で10件の結果を取得
+qmd query -n 10 --min-score 0.3 "API設計パターン"
 
-# Output as markdown for LLM context
-qmd search --md --full "error handling"
+# LLMコンテキスト用にMarkdown出力
+qmd search --md --full "エラーハンドリング"
 
-# JSON output for scripting
-qmd query --json "quarterly reports"
+# スクリプト用JSON出力
+qmd query --json "四半期レポート"
 
-# Use separate index for different knowledge base
-qmd --index work search "quarterly reports"
+# 異なるナレッジベース用に別のインデックスを使用
+qmd --index work search "四半期レポート"
 ```
 
-### Index Maintenance
+## インデックスメンテナンス
 
-```sh
-# Show index status and collections with contexts
+```bash
+# インデックスステータスとコンテキスト付きコレクションを表示
 qmd status
 
-# Re-index all collections
+# すべてのコレクションを再インデックス
 qmd update
 
-# Re-index with git pull first (for remote repos)
+# 最初にgit pullして再インデックス(リモートリポジトリ用)
 qmd update --pull
 
-# Get document by filepath (with fuzzy matching suggestions)
+# ファイルパスでドキュメントを取得(あいまい一致の提案付き)
 qmd get notes/meeting.md
 
-# Get document by docid (from search results)
+# docidでドキュメントを取得(検索結果から)
 qmd get "#abc123"
 
-# Get document starting at line 50, max 100 lines
+# 50行目から開始、最大100行
 qmd get notes/meeting.md:50 -l 100
 
-# Get multiple documents by glob pattern
+# グロブパターンで複数ドキュメントを取得
 qmd multi-get "journals/2025-05*.md"
 
-# Get multiple documents by comma-separated list (supports docids)
+# カンマ区切りリストで複数ドキュメントを取得(docid対応)
 qmd multi-get "doc1.md, doc2.md, #abc123"
 
-# Limit multi-get to files under 20KB
+# multi-getを20KB未満のファイルに制限
 qmd multi-get "docs/*.md" --max-bytes 20480
 
-# Output multi-get as JSON for agent processing
+# multi-getをエージェント処理用JSON出力
 qmd multi-get "docs/*.md" --json
 
-# Clean up cache and orphaned data
+# キャッシュと孤立データをクリーンアップ
 qmd cleanup
 ```
 
-## Data Storage
+## データストレージ
 
-Index stored in: `~/.cache/qmd/index.sqlite`
+インデックス保存場所: `~/.cache/qmd/index.sqlite`
 
-### Schema
+### スキーマ
 
-```sql
-collections     -- Indexed directories with name and glob patterns
-path_contexts   -- Context descriptions by virtual path (qmd://...)
-documents       -- Markdown content with metadata and docid (6-char hash)
-documents_fts   -- FTS5 full-text index
-content_vectors -- Embedding chunks (hash, seq, pos, 800 tokens each)
-vectors_vec     -- sqlite-vec vector index (hash_seq key)
-llm_cache       -- Cached LLM responses (query expansion, rerank scores)
-```
+- `collections` -- 名前とグロブパターン付きのインデックス済みディレクトリ
+- `path_contexts` -- 仮想パス(qmd://...)別のコンテキスト説明
+- `documents` -- メタデータとdocid(6文字のハッシュ)付きMarkdownコンテンツ
+- `documents_fts` -- FTS5全文インデックス
+- `content_vectors` -- 埋め込みチャンク(hash, seq, pos、各800トークン)
+- `vectors_vec` -- sqlite-vecベクトルインデックス(hash_seqキー)
+- `llm_cache` -- キャッシュされたLLM応答(クエリ拡張、再ランクスコア)
 
-## Environment Variables
+## 環境変数
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `XDG_CACHE_HOME` | `~/.cache` | Cache directory location |
+| 変数 | デフォルト | 説明 |
+|------|-----------|------|
+| XDG_CACHE_HOME | ~/.cache | キャッシュディレクトリの場所 |
 
-## How It Works
+## 仕組み
 
-### Indexing Flow
+### インデックスフロー
 
 ```
-Collection ──► Glob Pattern ──► Markdown Files ──► Parse Title ──► Hash Content
+コレクション ──► グロブパターン ──► Markdownファイル ──► タイトル解析 ──► コンテンツハッシュ
     │                                                   │              │
     │                                                   │              ▼
-    │                                                   │         Generate docid
-    │                                                   │         (6-char hash)
+    │                                                   │         docid生成
+    │                                                   │       (6文字ハッシュ)
     │                                                   │              │
-    └──────────────────────────────────────────────────►└──► Store in SQLite
+    └──────────────────────────────────────────────────►└──► SQLiteに保存
                                                                        │
                                                                        ▼
-                                                                  FTS5 Index
+                                                                  FTS5インデックス
 ```
 
-### Embedding Flow
+### 埋め込みフロー
 
-Documents are chunked into 800-token pieces with 15% overlap:
+ドキュメントは15%オーバーラップで800トークンのチャンクに分割されます:
 
 ```
-Document ──► Chunk (800 tokens) ──► Format each chunk ──► node-llama-cpp ──► Store Vectors
-                │                    "title | text"        embedBatch()
+ドキュメント ──► チャンク(800トークン) ──► 各チャンクをフォーマット ──► node-llama-cpp ──► ベクトル保存
+                │                        "title | text"         embedBatch()
                 │
-                └─► Chunks stored with:
-                    - hash: document hash
-                    - seq: chunk sequence (0, 1, 2...)
-                    - pos: character position in original
+                └─► チャンクは以下とともに保存:
+                    - hash: ドキュメントハッシュ
+                    - seq: チャンク順序(0, 1, 2...)
+                    - pos: 元の文字位置
 ```
 
-### Query Flow (Hybrid)
+### クエリフロー(ハイブリッド)
 
 ```
-Query ──► LLM Expansion ──► [Original, Variant 1, Variant 2]
+クエリ ──► LLM拡張 ──► [元、バリアント1、バリアント2]
                 │
       ┌─────────┴─────────┐
       ▼                   ▼
-   For each query:     FTS (BM25)
+   各クエリについて:    FTS (BM25)
       │                   │
       ▼                   ▼
-   Vector Search      Ranked List
+   ベクトル検索       ランク付きリスト
       │
       ▼
-   Ranked List
+   ランク付きリスト
       │
       └─────────┬─────────┘
                 ▼
-         RRF Fusion (k=60)
-         Original query ×2 weight
-         Top-rank bonus: +0.05/#1, +0.02/#2-3
+         RRF統合 (k=60)
+         元のクエリ ×2重み
+         トップランクボーナス: +0.05/#1、+0.02/#2-3
                 │
                 ▼
-         Top 30 candidates
+         上位30候補
                 │
                 ▼
-         LLM Re-ranking
-         (yes/no + logprob confidence)
+         LLM再ランキング
+         (yes/no + logprob信頼度)
                 │
                 ▼
-         Position-Aware Blend
-         Rank 1-3:  75% RRF / 25% reranker
-         Rank 4-10: 60% RRF / 40% reranker
-         Rank 11+:  40% RRF / 60% reranker
+         位置考慮ブレンド
+         ランク1-3:  75% RRF / 25% 再ランカー
+         ランク4-10: 60% RRF / 40% 再ランカー
+         ランク11以上: 40% RRF / 60% 再ランカー
                 │
                 ▼
-         Final Results
+         最終結果
 ```
 
-## Model Configuration
+## モデル設定
 
-Models are configured in `src/llm.ts` as HuggingFace URIs:
+モデルは`src/llm.ts`でHuggingFace URIとして設定されています:
 
 ```typescript
 const DEFAULT_EMBED_MODEL = "hf:ggml-org/embeddinggemma-300M-GGUF/embeddinggemma-300M-Q8_0.gguf";
@@ -518,24 +518,24 @@ const DEFAULT_RERANK_MODEL = "hf:ggml-org/Qwen3-Reranker-0.6B-Q8_0-GGUF/qwen3-re
 const DEFAULT_GENERATE_MODEL = "hf:ggml-org/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf";
 ```
 
-### EmbeddingGemma Prompt Format
+### EmbeddingGemmaプロンプトフォーマット
 
-```
-// For queries
+```typescript
+// クエリ用
 "task: search result | query: {query}"
 
-// For documents
+// ドキュメント用
 "title: {title} | text: {content}"
 ```
 
 ### Qwen3-Reranker
 
-Uses node-llama-cpp's `createRankingContext()` and `rankAndSort()` API for cross-encoder reranking. Returns documents sorted by relevance score (0.0 - 1.0).
+クロスエンコーダー再ランキングのために、node-llama-cppの`createRankingContext()`と`rankAndSort()` APIを使用します。関連性スコア(0.0 - 1.0)でソートされたドキュメントを返します。
 
-### Qwen3 (Query Expansion)
+### Qwen3 (クエリ拡張)
 
-Used for generating query variations via `LlamaChatSession`.
+LlamaChatSession経由でクエリバリエーションを生成するために使用されます。
 
-## License
+## ライセンス
 
 MIT
