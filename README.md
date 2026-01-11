@@ -9,7 +9,7 @@ QMDは、BM25による全文検索、ベクトルによる意味検索、LLMに�
 
 ```bash
 # グローバルインストール
-bun install -g https://github.com/tobi/qmd
+bun install -g https://github.com/ryujimorimoto/ja-qmd
 
 # ノート、ドキュメント、会議記録用のコレクションを作成
 qmd collection add ~/notes --name notes
